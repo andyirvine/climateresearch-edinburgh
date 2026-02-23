@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climate Change & Older Edinburgh Residents</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:       #0d1117;
+            --surface:  #161b22;
+            --surface2: #21262d;
+            --border:   #30363d;
+            --text:     #e6edf3;
+            --muted:    #8b949e;
+            --accent:   #3fb68e;
+            --blue:     #58a6ff;
+            --con:      #b45c5c;
+            --lab:      #e8734a;
+            --snp:      #e3b341;
+            --skp:      #8b949e;
+            --grn:      #3fb68e;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* ── Progress bar ── */
+        #progress {
+            position: fixed;
+            top: 0; left: 0;
+            height: 3px;
+            background: var(--accent);
+            transition: width 0.4s ease;
+            z-index: 200;
+        }
+
+        /* ── Navigation ── */
+        #nav {
+            position: fixed;
+            bottom: 22px; right: 26px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 200;
+        }
+        #counter {
+            font-size: 12px;
+            color: var(--muted);
+            min-width: 44px;
+            text-align: center;
+        }
+        .btn {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .btn:hover:not(:disabled) { background: var(--surface2); border-color: var(--accent); }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* ── Slides ── */
+        #deck {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        .slide {
+            position: absolute;
+            inset: 0;
+            padding: 52px 68px 76px;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            transform: translateX(36px);
+            transition: opacity 0.32s ease, transform 0.32s ease;
+            pointer-events: none;
+            overflow-y: auto;
+        }
+        .slide.active  { opacity: 1; transform: translateX(0); pointer-events: all; }
+        .slide.leaving { opacity: 0; transform: translateX(-36px); }
+
+        /* ── Typography ── */
+        .eyebrow {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+        .h1 {
+            font-size: 38px;
+            font-weight: 800;
+            line-height: 1.18;
+            margin-bottom: 28px;
+        }
+        .h3 {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 14px;
+        }
+
+        /* ── Layout helpers ── */
+        .col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .col3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+        .col5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+        .grow { flex: 1; }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px;
+        }
+
+        /* ── Persona cards ── */
+        .persona {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px;
+            position: relative;
+            min-height: 180px;
+            cursor: default;
+        }
+        .persona-front { transition: opacity .2s; }
+        .persona-back {
+            position: absolute;
+            inset: 18px;
+            opacity: 0;
+            transition: opacity .2s;
+            font-size: 12px;
+            color: var(--muted);
+            font-style: italic;
+            line-height: 1.55;
+            display: flex;
+            align-items: center;
+        }
+        .persona:hover .persona-front { opacity: 0; }
+        .persona:hover .persona-back  { opacity: 1; }
+
+        .pol-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            margin-bottom: 8px;
+        }
+        .pname { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+        .pdetail { font-size: 11px; color: var(--muted); line-height: 1.65; }
+
+        /* ── Blockquotes ── */
+        blockquote {
+            border-left: 3px solid var(--accent);
+            padding-left: 14px;
+            font-style: italic;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+        blockquote cite {
+            display: block;
+            margin-top: 7px;
+            font-size: 11px;
+            font-style: normal;
+            color: var(--accent);
+        }
+
+        /* ── Stats ── */
+        .stat { font-size: 58px; font-weight: 800; color: var(--accent); line-height: 1; }
+        .stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+        /* ── Row items (orgs, sources) ── */
+        .row-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 9px 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .row-name { font-weight: 600; flex: 1; }
+        .row-note { font-size: 11px; color: var(--muted); }
+
+        /* ── Numbered list ── */
+        .num-list { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+        .num-list li { display: flex; gap: 12px; align-items: flex-start; font-size: 13px; line-height: 1.5; }
+        .badge {
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: var(--bg);
+            font-weight: 800;
+            font-size: 11px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .badge.ghost {
+            background: var(--surface2);
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+
+        /* ── Impact cards ── */
+        .impact { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+        .impact-n { font-size: 30px; font-weight: 800; color: var(--accent); }
+        .impact-t { font-size: 14px; font-weight: 700; margin: 4px 0 8px; }
+        .impact-d { font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+        /* ── Expandable themes ── */
+        .theme { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+        .theme-head {
+            padding: 13px 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 600;
+            user-select: none;
+            transition: background .15s;
+        }
+        .theme-head:hover { background: var(--surface2); }
+        .theme-body {
+            max-height: 0;
+            overflow: hidden;
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.65;
+            transition: max-height .3s ease;
+        }
+        .theme-body.open { max-height: 120px; }
+        .theme-inner { padding: 0 16px 13px; }
+        .chevron { transition: transform .2s; display: inline-block; }
+        .chevron.open { transform: rotate(180deg); }
+
+        /* ── Slide 1 ── */
+        .s1-bg { background: radial-gradient(ellipse at 25% 55%, rgba(63,182,142,.09) 0%, transparent 58%); }
+        .s1-title { font-size: 54px; font-weight: 800; line-height: 1.13; margin-bottom: 18px; }
+        .s1-sub   { font-size: 17px; color: var(--muted); max-width: 520px; margin-bottom: 40px; line-height: 1.6; }
+        .tag-row  { display: flex; gap: 8px; margin-bottom: 22px; }
+        .tag      { padding: 4px 11px; border-radius: 4px; font-size: 11px; font-weight: 600; background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+        .hint     { font-size: 11px; color: var(--muted); opacity: .55; }
+    </style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<div id="deck">
+
+    <!-- ══ 1. TITLE ══ -->
+    <div class="slide s1-bg active">
+        <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+            <div class="tag-row">
+                <span class="tag">Qualitative Research</span>
+                <span class="tag">Edinburgh · February 2026</span>
+                <span class="tag">5 Interviews</span>
+            </div>
+            <div class="s1-title">
+                Climate Change &amp;<br>
+                <span style="color:var(--accent);">Older Edinburgh</span><br>
+                Residents
+            </div>
+            <div class="s1-sub">Attitudes, learning, local impacts, and community organisations — from 5 qualitative interviews with Edinburgh residents aged 60–80 with grandchildren.</div>
+            <div class="hint">→ Arrow keys or buttons below to navigate</div>
+        </div>
+    </div>
+
+    <!-- ══ 2. SAMPLE ══ -->
+    <div class="slide">
+        <div class="eyebrow">The Sample</div>
+        <div class="h1">Who We Spoke To</div>
+        <div class="col5 grow" style="align-content:start;">
+
+            <div class="persona" style="border-top:3px solid var(--con);">
+                <div class="persona-front">
+                    <div class="pol-tag" style="background:rgba(180,92,92,.15);color:var(--con);">Conservative</div>
+                    <div class="pname">Margaret Robertson</div>
+                    <div class="pdetail">68 · Morningside<br>2 grandchildren<br>Retired headteacher</div>
+                </div>
+                <div class="persona-back">"I believe it's happening. I just don't always believe the solutions they're selling us are the right ones."</div>
+            </div>
+
+            <div class="persona" style="border-top:3px solid var(--lab);">
+                <div class="persona-front">
+                    <div class="pol-tag" style="background:rgba(232,115,74,.15);color:var(--lab);">Labour</div>
+                    <div class="pname">Ian Campbell</div>
+                    <div class="pdetail">74 · Leith<br>3 grandchildren<br>Retired dockworker</div>
+                </div>
+                <div class="persona-back">"The people who can least afford it are always the ones being asked to change."</div>
+            </div>
+
+            <div class="persona" style="border-top:3px solid var(--snp);">
+                <div class="persona-front">
+                    <div class="pol-tag" style="background:rgba(227,179,65,.15);color:var(--snp);">SNP</div>
+                    <div class="pname">Fiona MacDonald</div>
+                    <div class="pdetail">62 · Stockbridge<br>1 grandchild<br>Retired nurse</div>
+                </div>
+                <div class="persona-back">"There's something specifically Scottish about how I feel this. It's our landscape, our rivers, our coasts."</div>
+            </div>
+
+            <div class="persona" style="border-top:3px solid var(--skp);">
+                <div class="persona-front">
+                    <div class="pol-tag" style="background:rgba(139,148,158,.15);color:var(--skp);">Sceptical</div>
+                    <div class="pname">Bob Mitchell</div>
+                    <div class="pdetail">79 · Portobello<br>4 grandchildren<br>Retired engineer</div>
+                </div>
+                <div class="persona-back">"I don't want my grandkids inheriting a mess. I just want to be sure we know what the right thing is."</div>
+            </div>
+
+            <div class="persona" style="border-top:3px solid var(--grn);">
+                <div class="persona-front">
+                    <div class="pol-tag" style="background:rgba(63,182,142,.15);color:var(--grn);">Green</div>
+                    <div class="pname">Helen Thomson</div>
+                    <div class="pdetail">65 · Marchmont<br>2 grandchildren<br>Retired ecologist</div>
+                </div>
+                <div class="persona-back">"Knowing the details isn't always easier than not knowing them."</div>
+            </div>
+
+        </div>
+        <div style="margin-top:14px;font-size:11px;color:var(--muted);">Hover each card to reveal a key quote.</div>
+    </div>
+
+    <!-- ══ 3. CORE FINDING ══ -->
+    <div class="slide">
+        <div class="eyebrow">Attitudes</div>
+        <div class="h1">The Core Finding:<br>The Acceptance / Policy Gap</div>
+        <div class="col2 grow" style="align-items:start;">
+            <div>
+                <div style="display:flex;gap:36px;margin-bottom:28px;">
+                    <div>
+                        <div class="stat">4/5</div>
+                        <div class="stat-label">Accept the science</div>
+                    </div>
+                    <div>
+                        <div class="stat" style="color:var(--lab);">1/5</div>
+                        <div class="stat-label">Trust current policy responses</div>
+                    </div>
+                </div>
+                <p style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:14px;">The dominant attitudinal pattern is <strong style="color:var(--text);">not denial</strong> — it is a gap between accepting that climate change is real and trusting that the policy response is fair, practical, or well-designed.</p>
+                <p style="font-size:13px;color:var(--muted);line-height:1.7;">This <em>legitimacy gap</em> is shaped by concerns about individual cost, distributional fairness, and political capture. It is a more tractable challenge than outright denial — but it requires different messaging.</p>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px;">
+                <blockquote>
+                    "I believe it's happening. I just don't always believe the solutions they're selling us are the right ones."
+                    <cite>— Margaret, 68, Conservative</cite>
+                </blockquote>
+                <blockquote>
+                    "I'm not saying it's not happening. I'm saying the people who can least afford it are always the ones being asked to change."
+                    <cite>— Ian, 74, Labour</cite>
+                </blockquote>
+                <blockquote>
+                    "Denial you can engage with. Numbness is harder."
+                    <cite>— Helen, 65, Green</cite>
+                </blockquote>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ 4. POLITICAL SPECTRUM ══ -->
+    <div class="slide">
+        <div class="eyebrow">Attitudes</div>
+        <div class="h1">How Political Identity Shapes the Frame</div>
+        <div class="col5 grow" style="align-content:start;">
+
+            <div class="card" style="border-top:3px solid var(--con);">
+                <div class="pol-tag" style="background:rgba(180,92,92,.15);color:var(--con);">Conservative</div>
+                <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Margaret</div>
+                <div style="font-size:12px;color:var(--muted);line-height:1.6;">Accepts science. Sceptical of policy costs and ideological capture. Wants practical, incremental change — not systemic overhaul.</div>
+            </div>
+
+            <div class="card" style="border-top:3px solid var(--lab);">
+                <div class="pol-tag" style="background:rgba(232,115,74,.15);color:var(--lab);">Labour</div>
+                <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Ian</div>
+                <div style="font-size:12px;color:var(--muted);line-height:1.6;">Accepts science. Sees climate as inseparable from economic justice. Resentful of what he perceives as middle-class environmentalism.</div>
+            </div>
+
+            <div class="card" style="border-top:3px solid var(--snp);">
+                <div class="pol-tag" style="background:rgba(227,179,65,.15);color:var(--snp);">SNP</div>
+                <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Fiona</div>
+                <div style="font-size:12px;color:var(--muted);line-height:1.6;">Accepts science and urgency. Frames climate through Scottish identity. Prefers community-led action over top-down policy.</div>
+            </div>
+
+            <div class="card" style="border-top:3px solid var(--skp);">
+                <div class="pol-tag" style="background:rgba(139,148,158,.15);color:var(--skp);">Sceptical</div>
+                <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Bob</div>
+                <div style="font-size:12px;color:var(--muted);line-height:1.6;">Acknowledges observable change; questions anthropogenic attribution. Concerned about economic risk of premature or misdirected action.</div>
+            </div>
+
+            <div class="card" style="border-top:3px solid var(--grn);">
+                <div class="pol-tag" style="background:rgba(63,182,142,.15);color:var(--grn);">Green</div>
+                <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Helen</div>
+                <div style="font-size:12px;color:var(--muted);line-height:1.6;">Full alignment with scientific consensus. Experiences eco-anxiety. Frustrated by the pace of systemic action at all levels.</div>
+            </div>
+
+        </div>
+        <p style="margin-top:16px;font-size:11px;color:var(--muted);">No single message engages all five respondents equally. Each framing requires a distinct entry point.</p>
+    </div>
+
+    <!-- ══ 5. LEARNING ══ -->
+    <div class="slide">
+        <div class="eyebrow">Learning</div>
+        <div class="h1">How People Learn About Climate Change</div>
+        <div class="col2 grow" style="align-items:start;gap:32px;">
+            <div>
+                <div class="h3">Primary Information Sources</div>
+                <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:20px;">
+                    <div class="row-item">
+                        <div class="dot" style="background:var(--accent);"></div>
+                        <div class="row-name">BBC News / Radio 4</div>
+                        <div class="row-note">4 of 5 respondents</div>
+                    </div>
+                    <div class="row-item">
+                        <div class="dot" style="background:var(--blue);"></div>
+                        <div class="row-name">Broadsheet newspapers</div>
+                        <div class="row-note">The Times, The Guardian</div>
+                    </div>
+                    <div class="row-item">
+                        <div class="dot" style="background:var(--lab);"></div>
+                        <div class="row-name">STV / Edinburgh Evening News</div>
+                        <div class="row-note">Working-class respondents</div>
+                    </div>
+                    <div class="row-item">
+                        <div class="dot" style="background:var(--snp);"></div>
+                        <div class="row-name">Org briefings &amp; podcasts</div>
+                        <div class="row-note">Engaged respondents only</div>
+                    </div>
+                    <div class="row-item" style="border-color:rgba(139,148,158,.35);">
+                        <div class="dot" style="background:var(--skp);"></div>
+                        <div class="row-name">YouTube &amp; online forums</div>
+                        <div class="row-note">Bob — incl. sceptic content</div>
+                    </div>
+                </div>
+                <p style="font-size:12px;color:var(--muted);line-height:1.65;">Traditional broadcast media retains strong reach. Social media is actively distrusted by Margaret and Ian — but has shaped Bob's scepticism toward climate counter-narratives.</p>
+            </div>
+            <div>
+                <div class="h3">The Standout Finding</div>
+                <div class="card" style="margin-bottom:14px;">
+                    <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px;">Grandchildren as information conduits</div>
+                    <p style="font-size:12px;color:var(--muted);line-height:1.65;">In 4 of 5 cases, school-age grandchildren are actively bringing climate conversations into the household — creating a <strong style="color:var(--text);">reverse learning dynamic</strong>.</p>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;">
+                    <div style="text-align:center;font-size:11px;color:var(--muted);">School<br>curriculum</div>
+                    <div style="color:var(--accent);font-size:18px;font-weight:700;">→</div>
+                    <div style="text-align:center;font-size:11px;color:var(--muted);">Grandchildren<br>aged 8–16</div>
+                    <div style="color:var(--accent);font-size:18px;font-weight:700;">→</div>
+                    <div style="text-align:center;font-size:11px;color:var(--muted);">Grandparents<br>this sample</div>
+                </div>
+                <blockquote>
+                    "She makes it feel more personal. Less like something being done to you by a government."
+                    <cite>— Ian, on his 14-year-old granddaughter</cite>
+                </blockquote>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ 6. IMPACTS ══ -->
+    <div class="slide">
+        <div class="eyebrow">Impacts</div>
+        <div class="h1">What People Have Observed Locally</div>
+        <div class="col3" style="margin-bottom:20px;">
+            <div class="impact">
+                <div class="impact-n">4/5</div>
+                <div class="impact-t">Water of Leith flooding</div>
+                <div class="impact-d">The most cited local climate signal. Repeated flooding of a well-known city waterway has made climate change feel present, not future.</div>
+            </div>
+            <div class="impact">
+                <div class="impact-n">2/5</div>
+                <div class="impact-t">Changes to the Firth of Forth</div>
+                <div class="impact-d">Ian and Bob — both with lifelong connections to the waterfront — note heavier storms, changed sea conditions, and coastal erosion.</div>
+            </div>
+            <div class="impact">
+                <div class="impact-n">2/5</div>
+                <div class="impact-t">Seasonal &amp; ecological shifts</div>
+                <div class="impact-d">Earlier springs, loss of snowfall, changes in bird arrival dates. Scientifically documented by Helen; felt impressionistically by Fiona.</div>
+            </div>
+        </div>
+        <div class="card">
+            <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:12px;">Personal memory as environmental evidence</div>
+            <div class="col2">
+                <blockquote>
+                    "The blackbirds in my garden come a month earlier than they did when I moved to this house. That's not a statistic. That's something I've watched with my own eyes."
+                    <cite>— Helen</cite>
+                </blockquote>
+                <blockquote>
+                    "I've swum at Portobello since I was a boy. The water's different. The storms are different."
+                    <cite>— Bob (sceptic on causes, not on change)</cite>
+                </blockquote>
+            </div>
+            <p style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6;">Even the most sceptical respondent does not deny that change is occurring. Long-term personal observation is a form of local environmental knowledge — an asset, not just anecdote.</p>
+        </div>
+    </div>
+
+    <!-- ══ 7. ORGANISATIONS ══ -->
+    <div class="slide">
+        <div class="eyebrow">Community Organisations</div>
+        <div class="h1">The Organisational Landscape</div>
+        <div class="col2 grow" style="align-items:start;">
+            <div>
+                <div class="h3">Organisations Mentioned</div>
+                <div style="display:flex;flex-direction:column;gap:7px;">
+                    <div class="row-item" style="border-color:rgba(63,182,142,.45);background:rgba(63,182,142,.05);">
+                        <div class="dot" style="background:var(--accent);"></div>
+                        <div>
+                            <div class="row-name">Transition Edinburgh</div>
+                            <div class="row-note">Named by 3 respondents · Broadest credibility across sample</div>
+                        </div>
+                    </div>
+                    <div class="row-item">
+                        <div class="dot" style="background:var(--blue);"></div>
+                        <div>
+                            <div class="row-name">Friends of the Earth Scotland</div>
+                            <div class="row-note">Helen (active volunteer) · Policy-connected</div>
+                        </div>
+                    </div>
+                    <div class="row-item">
+                        <div class="dot" style="background:var(--snp);"></div>
+                        <div>
+                            <div class="row-name">Leith Community Centre / Pilrig Garden</div>
+                            <div class="row-note">Ian (aware) · Practical, working-class credibility</div>
+                        </div>
+                    </div>
+                    <div class="row-item">
+                        <div class="dot" style="background:var(--con);"></div>
+                        <div>
+                            <div class="row-name">St Cuthbert's Church</div>
+                            <div class="row-note">Margaret (aware) · Underexplored faith entry point</div>
+                        </div>
+                    </div>
+                    <div class="row-item">
+                        <div class="dot" style="background:var(--skp);"></div>
+                        <div>
+                            <div class="row-name">Portobello beach group</div>
+                            <div class="row-note">Bob (aware) · Practical appeal even for sceptics</div>
+                        </div>
+                    </div>
+                    <div class="row-item" style="opacity:.5;border-color:#e74c3c44;">
+                        <div class="dot" style="background:#e74c3c;"></div>
+                        <div>
+                            <div class="row-name" style="color:#e74c3c;">Extinction Rebellion</div>
+                            <div class="row-note">Bob (dismissive) · Actively alienating to this demographic</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="h3">Why Transition Edinburgh Stands Out</div>
+                <div class="card" style="margin-bottom:14px;">
+                    <p style="font-size:12px;color:var(--muted);line-height:1.7;">Known even by non-members. Valued by active participants. Its model — repair cafés, community food, composting — lowers the barrier through practical framing rather than political identity.</p>
+                </div>
+                <blockquote style="margin-bottom:18px;">
+                    "It's not hair-shirt environmentalism — it's very practical, very positive, very welcoming. It doesn't feel like sacrifice; it feels like community."
+                    <cite>— Fiona, active member</cite>
+                </blockquote>
+                <div class="card" style="background:rgba(63,182,142,.05);border-color:rgba(63,182,142,.3);">
+                    <div style="font-size:12px;font-weight:700;margin-bottom:5px;">Principle across all five respondents</div>
+                    <div style="font-size:12px;color:var(--muted);">Practical, community-level activity is preferred over advocacy or protest — regardless of political leaning.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ 8. THEMES ══ -->
+    <div class="slide">
+        <div class="eyebrow">Cross-Cutting Themes</div>
+        <div class="h1">Five Themes Across the Sample</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:7px;justify-content:center;">
+
+            <div class="theme">
+                <div class="theme-head" onclick="toggle(this)">
+                    <span>① Grandchildren as emotional bridge</span>
+                    <span class="chevron">▾</span>
+                </div>
+                <div class="theme-body">
+                    <div class="theme-inner">Present in all 5 interviews. Grandchildren function as information sources, emotional anchors, mirrors of legacy, and — in Bob's case — active challengers of his scepticism. The grandparent-grandchild relationship is the single most consistent lever for climate engagement in this sample.</div>
+                </div>
+            </div>
+
+            <div class="theme">
+                <div class="theme-head" onclick="toggle(this)">
+                    <span>② Practical action preferred over activism</span>
+                    <span class="chevron">▾</span>
+                </div>
+                <div class="theme-body">
+                    <div class="theme-inner">Four of five respondents prefer concrete, community-level activity to political advocacy or street protest. Margaret wants "genuine conversations, not lectures." Ian wants to "see the benefit." Bob will consider beach preservation but not political protest. This preference cuts across the political spectrum.</div>
+                </div>
+            </div>
+
+            <div class="theme">
+                <div class="theme-head" onclick="toggle(this)">
+                    <span>③ Class and economic justice</span>
+                    <span class="chevron">▾</span>
+                </div>
+                <div class="theme-body">
+                    <div class="theme-inner">The costs of transition are perceived as falling on those least able to afford them. This concern is not unique to Ian (working-class, Labour) — Margaret (Conservative, property-owning) also describes being unable to absorb heat pump costs as a widow on a fixed income. Distributional fairness is a cross-partisan issue.</div>
+                </div>
+            </div>
+
+            <div class="theme">
+                <div class="theme-head" onclick="toggle(this)">
+                    <span>④ Scottish place attachment</span>
+                    <span class="chevron">▾</span>
+                </div>
+                <div class="theme-body">
+                    <div class="theme-inner">Three respondents connect concern for climate to a personal relationship with Scotland's specific landscape. Fiona makes this explicit; Ian and Bob express it through attachment to the Firth of Forth. Localised, place-specific framing — Scotland's coasts, the Water of Leith, Edinburgh's seasons — resonates more than global narratives.</div>
+                </div>
+            </div>
+
+            <div class="theme">
+                <div class="theme-head" onclick="toggle(this)">
+                    <span>⑤ Online scepticism and the limits of media literacy</span>
+                    <span class="chevron">▾</span>
+                </div>
+                <div class="theme-body">
+                    <div class="theme-inner">Bob's trajectory shows how professional confidence can increase susceptibility to sophisticated counter-narratives. His engineering background makes him trust his own evaluation of technical claims — which has led him toward sceptic YouTube content he frames as "marginalised science." Margaret and Ian are aware of this vulnerability; Bob is not.</div>
+                </div>
+            </div>
+
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--muted);">Click each theme to expand.</div>
+    </div>
+
+    <!-- ══ 9. IMPLICATIONS ══ -->
+    <div class="slide">
+        <div class="eyebrow">Implications for Engagement</div>
+        <div class="h1">Seven Recommendations</div>
+        <ul class="num-list grow" style="justify-content:space-evenly;">
+            <li>
+                <div class="badge">1</div>
+                <div><strong>Lead with local.</strong> The Water of Leith, the Firth, Edinburgh's changing seasons are more resonant than global statistics.</div>
+            </li>
+            <li>
+                <div class="badge">2</div>
+                <div><strong>Use the grandparent-grandchild dynamic.</strong> School-based learning is already priming these conversations — community engagement can build on it deliberately.</div>
+            </li>
+            <li>
+                <div class="badge">3</div>
+                <div><strong>Practical beats political.</strong> Transition Edinburgh's model — repair, composting, food — is a template worth examining and scaling.</div>
+            </li>
+            <li>
+                <div class="badge">4</div>
+                <div><strong>Distinguish policy sceptics from science deniers.</strong> Most of this sample accepts the science. Frustration with policy is a different and more tractable challenge.</div>
+            </li>
+            <li>
+                <div class="badge">5</div>
+                <div><strong>Integrate economic justice.</strong> Who pays and who benefits cannot be an afterthought. For fixed-income and working-class respondents this is inseparable from the climate question.</div>
+            </li>
+            <li>
+                <div class="badge">6</div>
+                <div><strong>Explore faith communities and hyper-local groups.</strong> St Cuthbert's, local beach and garden groups — credible, low-barrier entry points for those who won't self-select into environmental organisations.</div>
+            </li>
+            <li>
+                <div class="badge">7</div>
+                <div><strong>Acknowledge the emotional dimension.</strong> Eco-anxiety, environmental grief, and psychological burden are present and underresearched in this demographic.</div>
+            </li>
+        </ul>
+    </div>
+
+    <!-- ══ 10. GAPS ══ -->
+    <div class="slide" style="background:radial-gradient(ellipse at 72% 48%, rgba(88,166,255,.06) 0%, transparent 58%);">
+        <div class="eyebrow">Next Steps</div>
+        <div class="h1">Gaps &amp; Further Research</div>
+        <div class="col2 grow" style="align-items:start;gap:32px;">
+            <div>
+                <div class="h3">What this sample can't tell us</div>
+                <ul class="num-list">
+                    <li><div class="badge ghost">1</div><div><strong>Geographic gaps.</strong> All five respondents live in inner Edinburgh. Perspectives from Craigmillar, Wester Hailes, and outer suburbs may diverge significantly.</div></li>
+                    <li><div class="badge ghost">2</div><div><strong>Eco-anxiety prevalence.</strong> Helen is the only respondent to name this explicitly. Structured follow-up questions are needed to establish how widespread it is.</div></li>
+                    <li><div class="badge ghost">3</div><div><strong>Transition Edinburgh's reach.</strong> Named by 3 of 5 respondents unprompted — warrants a dedicated organisational interview.</div></li>
+                    <li><div class="badge ghost">4</div><div><strong>The online sceptic pathway.</strong> Bob's trajectory is significant. What drives it and what might interrupt it?</div></li>
+                    <li><div class="badge ghost">5</div><div><strong>Intergenerational co-design.</strong> Given the grandparent-grandchild dynamic, activities designed for both generations together are worth piloting.</div></li>
+                </ul>
+            </div>
+            <div style="display:flex;flex-direction:column;justify-content:center;gap:16px;">
+                <div class="card" style="background:rgba(63,182,142,.05);border-color:rgba(63,182,142,.35);">
+                    <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px;">Closing observation</div>
+                    <p style="font-size:13px;color:var(--muted);line-height:1.7;">"Don't underestimate us. Many people my age and older have a deep connection to place, to nature, to the long view. We have a lot to offer. What we sometimes need is to be invited rather than lectured at."</p>
+                    <div style="margin-top:10px;font-size:11px;color:var(--accent);">— Fiona MacDonald, 62</div>
+                </div>
+                <p style="font-size:11px;color:var(--muted);line-height:1.7;padding:0 2px;">Based on 5 qualitative interviews conducted February 2026. Full transcripts available in the project Data folder.</p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /deck -->
+
+<div id="nav">
+    <button class="btn" id="prev" onclick="go(-1)" disabled>&#8592;</button>
+    <span id="counter">1 / 10</span>
+    <button class="btn" id="next" onclick="go(1)">&#8594;</button>
+</div>
+
+<script>
+    const slides = document.querySelectorAll('.slide');
+    const N = slides.length;
+    let cur = 0;
+
+    function go(dir) {
+        const nxt = cur + dir;
+        if (nxt < 0 || nxt >= N) return;
+        const old = cur;
+        slides[old].classList.remove('active');
+        slides[old].classList.add('leaving');
+        setTimeout(() => slides[old].classList.remove('leaving'), 380);
+        cur = nxt;
+        slides[cur].classList.add('active');
+        sync();
+    }
+
+    function sync() {
+        document.getElementById('counter').textContent = `${cur + 1} / ${N}`;
+        document.getElementById('prev').disabled = cur === 0;
+        document.getElementById('next').disabled = cur === N - 1;
+        document.getElementById('progress').style.width = `${((cur + 1) / N) * 100}%`;
+    }
+
+    function toggle(header) {
+        const body    = header.nextElementSibling;
+        const chevron = header.querySelector('.chevron');
+        body.classList.toggle('open');
+        chevron.classList.toggle('open');
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+        if (e.key === 'ArrowLeft')                   { e.preventDefault(); go(-1); }
+    });
+
+    sync();
+</script>
+</body>
+</html>
